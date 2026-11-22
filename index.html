@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brown Investment Club Tracker</title>
+  <style>
+    :root {
+      --primary: #15803d;
+      --primary-hover: #166534;
+      --accent: #0284c7;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --paid: #dcfce7;
+      --paid-text: #166534;
+      --disabled-cell: #f1f5f9;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px;
+    }
+    .container { max-width: 1250px; margin: 0 auto; }
+    
+    /* Top Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    h1 { margin: 0; font-size: 24px; color: #1e293b; display: flex; align-items: center; gap: 8px; }
+    .subtitle { margin: 4px 0 0; color: var(--text-muted); font-size: 13.5px; }
+
+    /* Navigation Tabs */
+    .tabs-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 2px solid var(--border);
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-bottom: 8px;
+    }
+    .tabs { display: flex; gap: 8px; }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      padding: 8px 18px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: #e0f2fe;
+      color: var(--accent);
+    }
+    .year-selector-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .year-select {
+      font-size: 15px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: white;
+      color: var(--primary);
+      cursor: pointer;
+    }
+
+    /* Summary Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .stat-num { font-size: 26px; font-weight: 800; color: var(--primary); }
+    .stat-label { font-size: 12.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 0;
+      margin-bottom: 12px;
+      color: #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* Buttons & Inputs */
+    .btn {
+      padding: 8px 14px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-secondary { background: #475569; }
+    .btn-secondary:hover { background: #334155; }
+    .btn-danger { background: #ef4444; padding: 4px 8px; font-size: 12px; }
+    .btn-danger:hover { background: #dc2626; }
+
+    input, select {
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13.5px;
+      outline: none;
+    }
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+    }
+
+    /* Tables */
+    .table-container {
+      max-height: 580px;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: center;
+      min-width: 950px;
+    }
+    th, td {
+      padding: 9px 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 600;
+      color: #475569;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    td.member-name-cell {
+      text-align: left;
+      font-weight: 600;
+      padding-left: 12px;
+      position: sticky;
+      left: 0;
+      background: white;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+    .member-name-text {
+      cursor: pointer;
+      border-bottom: 1px dashed #94a3b8;
+    }
+    .cell-paid {
+      background: var(--paid);
+      color: var(--paid-text);
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .cell-unpaid {
+      background: #fff;
+      color: #cbd5e1;
+      cursor: pointer;
+    }
+    .cell-disabled {
+      background: var(--disabled-cell);
+      color: #94a3b8;
+      cursor: not-allowed;
+      font-size: 11px;
+    }
+    .cell-unpaid:hover, .cell-paid:hover {
+      outline: 2px dashed #94a3b8;
+    }
+    .total-col { font-weight: 700; background: #f8fafc; }
+    .due-col { font-weight: 700; color: #dc2626; background: #f8fafc; }
+
+    /* Forms */
+    .flex-form {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .notice {
+      background: #eff6ff;
+      border-left: 4px solid var(--accent);
+      padding: 10px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #1e40af;
+      margin-bottom: 16px;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <h1>🌾 Brown Investment Club</h1>
+      <p class="subtitle">Member Dues, Multi-Year History (June 2020 – Present) & Sou Sou Tracker</p>
+    </div>
+    <div style="display:flex; gap: 8px; flex-wrap:wrap;">
+      <button class="btn btn-secondary" onclick="exportToCSV()">⬇️ Export CSV</button>
+      <button class="btn btn-secondary" onclick="exportBackupJSON()">💾 Backup (JSON)</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📂 Restore</button>
+      <input type="file" id="importFile" class="hidden" accept=".json" onchange="importBackupJSON(event)">
+    </div>
+  </div>
+
+  <!-- TABS & YEAR SELECTOR -->
+  <div class="tabs-bar">
+    <div class="tabs">
+      <button class="tab-btn active" id="tabDues" onclick="switchTab('dues')">🏦 Investment Fund Dues</button>
+      <button class="tab-btn" id="tabSouSou" onclick="switchTab('sousou')">🔄 Sou Sou Pool</button>
+    </div>
+    <div class="year-selector-wrap">
+      <label for="yearSelect">Active Year:</label>
+      <select id="yearSelect" class="year-select" onchange="handleYearChange()">
+        <option value="2020">2020 (From June)</option>
+        <option value="2021">2021</option>
+        <option value="2022">2022</option>
+        <option value="2023">2023</option>
+        <option value="2024">2024</option>
+        <option value="2025">2025</option>
+        <option value="2026" selected>2026 (Current)</option>
+        <option value="2027">2027</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- DUES TAB CONTENT -->
+  <div id="duesSection">
+    <div class="notice" id="yearNotice">
+      ℹ️ <strong>Roster Notice:</strong> Filtered to the 13 members with verified dues through July 2026. Double-click any name to rename inline, or click monthly amounts to toggle payments.
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-num" id="statCollected">$0</div>
+        <div class="stat-label" id="statCollectedLabel">Total Collected (2026)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statOutstanding" style="color: #dc2626;">$0</div>
+        <div class="stat-label">Remaining Balance Due</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statMembersCount" style="color: #0284c7;">13</div>
+        <div class="stat-label">Active Qualifying Members</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statPaidUp" style="color: #16a34a;">0</div>
+        <div class="stat-label">Paid In Full for Year</div>
+      </div>
+    </div>
+
+    <!-- ADD MEMBER INLINE -->
+    <div class="card" style="padding: 14px 20px;">
+      <div class="flex-form">
+        <span style="font-weight:600; font-size:13.5px;">Add New Member:</span>
+        <input type="text" id="newMemberName" placeholder="Enter full name" style="width:220px;">
+        <button class="btn" onclick="addNewMember()">+ Add to Roster</button>
+      </div>
+    </div>
+
+    <!-- MAIN DUES TABLE -->
+    <div class="card">
+      <div class="card-title">
+        <span id="tableHeading">2026 Dues Ledger ($25/mo)</span>
+        <input type="text" id="filterInput" placeholder="Filter member name..." oninput="renderDuesTable()" style="max-width:200px;">
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:170px; text-align:left; padding-left:12px;">Member Name</th>
+              <th>Jan</th>
+              <th>Feb</th>
+              <th>Mar</th>
+              <th>Apr</th>
+              <th>May</th>
+              <th>Jun</th>
+              <th>Jul</th>
+              <th>Aug</th>
+              <th>Sep</th>
+              <th>Oct</th>
+              <th>Nov</th>
+              <th>Dec</th>
+              <th class="total-col">Total Paid</th>
+              <th class="due-col">Owed</th>
+            </tr>
+          </thead>
+          <tbody id="duesTableBody"></tbody>
+          <tfoot id="duesTableFoot" style="font-weight:700; background:#f8fafc;"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOU SOU TAB CONTENT -->
+  <div id="souSouSection" class="hidden">
+    <div class="notice">
+      🔄 <strong>Sou Sou Savings Tracker:</strong> Manage monthly hand distributions, recipient draws, and member pool status for <span id="souSouYearLabel">2026</span>.
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-num" id="ssPoolTotal">$0</div>
+        <div class="stat-label">Total Pool Generated</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="ssDistributed" style="color: #0284c7;">$0</div>
+        <div class="stat-label">Total Hands Paid Out</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="ssPending" style="color: #dc2626;">$0</div>
+        <div class="stat-label">Pending Hand Balance</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <span>Sou Sou Monthly Schedule & Recipient Log</span>
+        <button class="btn btn-secondary" onclick="autoPopulateSouSouSchedule()">Auto-Assign Roster</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 100px;">Month</th>
+              <th style="text-align: left; padding-left: 14px;">Assigned Hand Recipient</th>
+              <th>Monthly Pool ($)</th>
+              <th>Payout Status</th>
+              <th>Date Disbursed</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="souSouTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DUES_RATE = 25;
+
+// Verified roster: Only members paid up through at least July 2026
+const DEFAULT_QUALIFYING_MEMBERS = [
+  "Diana", "Sheila", "Eric", "Carlisa", "Kenny", 
+  "Tyveka", "Bathan", "Leila", "Sophia", "Mechelle", 
+  "Lisa", "Erica", "Tiara"
+];
+
+// Baseline data structure
+function generateDefaultData() {
+  const years = ["2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027"];
+  const db = {
+    members: [...DEFAULT_QUALIFYING_MEMBERS],
+    dues: {},
+    sousou: {}
+  };
+
+  years.forEach(yr => {
+    db.dues[yr] = {};
+    db.members.forEach(name => {
+      db.dues[yr][name] = {};
+      MONTHS.forEach(mo => {
+        // Pre-fill 2026 based on spreadsheet
+        if (yr === "2026") {
+          let paid = 0;
+          if (["Diana","Tyveka","Bathan","Leila","Sophia","Lisa"].includes(name) && MONTHS.indexOf(mo) <= 10) paid = 25;
+          else if (["Sheila"].includes(name) && MONTHS.indexOf(mo) <= 9) paid = 25;
+          else if (["Eric","Erica"].includes(name) && MONTHS.indexOf(mo) <= 8) paid = 25;
+          else if (["Carlisa","Kenny","Mechelle"].includes(name) && MONTHS.indexOf(mo) <= 7) paid = 25;
+          else if (["Tiara"].includes(name) && MONTHS.indexOf(mo) <= 6) paid = 25;
+          db.dues[yr][name][mo] = paid;
+        } else if (yr === "2020" && MONTHS.indexOf(mo) < 5) {
+          db.dues[yr][name][mo] = null; // Prior to June 2020
+        } else {
+          db.dues[yr][name][mo] = 0;
+        }
+      });
+    });
+
+    // Default Sou Sou setup
+    db.sousou[yr] = MONTHS.map((mo, idx) => ({
+      month: mo,
+      recipient: db.members[idx % db.members.length] || "Unassigned",
+      amount: db.members.length * DUES_RATE,
+      status: "Pending",
+      datePaid: ""
+    }));
+  });
+
+  return db;
+}
+
+let appData = loadData();
+let currentYear = "2026";
+let activeTab = "dues";
+
+function loadData() {
+  const saved = localStorage.getItem('brown_investment_club_v2');
+  if (saved) {
+    try { return JSON.parse(saved); } catch(e) {}
+  }
+  return generateDefaultData();
+}
+
+function saveData() {
+  localStorage.setItem('brown_investment_club_v2', JSON.stringify(appData));
+  if (activeTab === "dues") {
+    renderDuesTable();
+    updateDuesStats();
+  } else {
+    renderSouSouTable();
+    updateSouSouStats();
+  }
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('tabDues').className = tab === 'dues' ? 'tab-btn active' : 'tab-btn';
+  document.getElementById('tabSouSou').className = tab === 'sousou' ? 'tab-btn active' : 'tab-btn';
+  document.getElementById('duesSection').className = tab === 'dues' ? '' : 'hidden';
+  document.getElementById('souSouSection').className = tab === 'sousou' ? '' : 'hidden';
+
+  if (tab === 'dues') {
+    renderDuesTable();
+    updateDuesStats();
+  } else {
+    document.getElementById('souSouYearLabel').innerText = currentYear;
+    renderSouSouTable();
+    updateSouSouStats();
+  }
+}
+
+function handleYearChange() {
+  currentYear = document.getElementById('yearSelect').value;
+  document.getElementById('tableHeading').innerText = `${currentYear} Dues Ledger ($25/mo)`;
+  document.getElementById('statCollectedLabel').innerText = `Total Collected (${currentYear})`;
+  
+  if (currentYear === "2020") {
+    document.getElementById('yearNotice').innerHTML = `ℹ️ <strong>2020 Notice:</strong> Tracking began in <strong>June 2020</strong>. January through May are marked not applicable.`;
+  } else {
+    document.getElementById('yearNotice').innerHTML = `ℹ️ <strong>Roster Notice:</strong> Filtered to the 13 members with verified dues through July 2026. Double-click any name to rename inline, or click monthly amounts to toggle payments.`;
+  }
+
+  // Ensure year exists in data
+  if (!appData.dues[currentYear]) {
+    appData.dues[currentYear] = {};
+    appData.members.forEach(m => {
+      appData.dues[currentYear][m] = {};
+      MONTHS.forEach(mo => appData.dues[currentYear][m][mo] = 0);
+    });
+  }
+  if (!appData.sousou[currentYear]) {
+    appData.sousou[currentYear] = MONTHS.map((mo, idx) => ({
+      month: mo,
+      recipient: appData.members[idx % appData.members.length] || "Unassigned",
+      amount: appData.members.length * DUES_RATE,
+      status: "Pending",
+      datePaid: ""
+    }));
+  }
+
+  saveData();
+}
+
+/* ================== DUES LOGIC ================== */
+function togglePayment(name, month) {
+  if (currentYear === "2020" && MONTHS.indexOf(month) < 5) return; // N/A months
+  if (!appData.dues[currentYear][name]) appData.dues[currentYear][name] = {};
+  const current = appData.dues[currentYear][name][month] || 0;
+  appData.dues[currentYear][name][month] = current > 0 ? 0 : DUES_RATE;
+  saveData();
+}
+
+function addNewMember() {
+  const name = document.getElementById('newMemberName').value.trim();
+  if (!name) return;
+  if (appData.members.includes(name)) {
+    alert("Member already exists in the roster.");
+    return;
+  }
+  appData.members.push(name);
+  Object.keys(appData.dues).forEach(yr => {
+    appData.dues[yr][name] = {};
+    MONTHS.forEach(mo => {
+      appData.dues[yr][name][mo] = (yr === "2020" && MONTHS.indexOf(mo) < 5) ? null : 0;
+    });
+  });
+  document.getElementById('newMemberName').value = "";
+  saveData();
+}
+
+function renameMember(oldName) {
+  const newName = prompt("Edit member name:", oldName);
+  if (!newName || newName.trim() === "" || newName === oldName) return;
+  const cleanName = newName.trim();
+  
+  const idx = appData.members.indexOf(oldName);
+  if (idx !== -1) appData.members[idx] = cleanName;
+
+  Object.keys(appData.dues).forEach(yr => {
+    if (appData.dues[yr][oldName]) {
+      appData.dues[yr][cleanName] = appData.dues[yr][oldName];
+      delete appData.dues[yr][oldName];
+    }
+  });
+
+  Object.keys(appData.sousou).forEach(yr => {
+    appData.sousou[yr].forEach(row => {
+      if (row.recipient === oldName) row.recipient = cleanName;
+    });
+  });
+
+  saveData();
+}
+
+function deleteMember(name) {
+  if (confirm(`Are you sure you want to delete ${name} from all years?`)) {
+    appData.members = appData.members.filter(m => m !== name);
+    Object.keys(appData.dues).forEach(yr => delete appData.dues[yr][name]);
+    saveData();
+  }
+}
+
+function renderDuesTable() {
+  const tbody = document.getElementById('duesTableBody');
+  const tfoot = document.getElementById('duesTableFoot');
+  const filter = (document.getElementById('filterInput').value || '').toLowerCase();
+  tbody.innerHTML = "";
+
+  const monthlyTotals = {};
+  MONTHS.forEach(m => monthlyTotals[m] = 0);
+  let grandTotalPaid = 0;
+  let grandTotalDue = 0;
+
+  const activeMonthsCount = currentYear === "2020" ? 7 : 12; // June-Dec = 7
+  const yearlyExpected = activeMonthsCount * DUES_RATE;
+
+  const filteredMembers = appData.members.filter(m => m.toLowerCase().includes(filter));
+
+  filteredMembers.forEach(name => {
+    const memData = (appData.dues[currentYear] && appData.dues[currentYear][name]) || {};
+    let personTotal = 0;
+
+    let rowHtml = `
+      <td class="member-name-cell">
+        <span class="member-name-text" title="Double click to rename" ondblclick="renameMember('${name}')">${name}</span>
+        <button class="btn btn-danger" title="Delete member" onclick="deleteMember('${name}')">✕</button>
+      </td>
+    `;
+
+    MONTHS.forEach((mo, idx) => {
+      if (currentYear === "2020" && idx < 5) {
+        rowHtml += `<td class="cell-disabled">N/A</td>`;
+      } else {
+        const val = memData[mo] || 0;
+        personTotal += val;
+        monthlyTotals[mo] += val;
+        const isPaid = val > 0;
+        rowHtml += `
+          <td class="${isPaid ? 'cell-paid' : 'cell-unpaid'}" 
+              title="Click to toggle $25 payment" 
+              onclick="togglePayment('${name}', '${mo}')">
+            ${isPaid ? `$${val}` : '-'}
+          </td>
+        `;
+      }
+    });
+
+    const balanceDue = Math.max(0, yearlyExpected - personTotal);
+    grandTotalPaid += personTotal;
+    grandTotalDue += balanceDue;
+
+    rowHtml += `
+      <td class="total-col">$${personTotal}</td>
+      <td class="due-col">$${balanceDue}</td>
+    `;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = rowHtml;
+    tbody.appendChild(tr);
+  });
+
+  // Footer Totals
+  let footHtml = `<tr><td style="text-align:left; padding-left:12px;">Monthly Totals</td>`;
+  MONTHS.forEach((mo, idx) => {
+    if (currentYear === "2020" && idx < 5) {
+      footHtml += `<td class="cell-disabled">-</td>`;
+    } else {
+      footHtml += `<td>$${monthlyTotals[mo]}</td>`;
+    }
+  });
+  footHtml += `
+    <td class="total-col" style="color:var(--primary); font-size:14px;">$${grandTotalPaid}</td>
+    <td class="due-col" style="font-size:14px;">$${grandTotalDue}</td>
+  </tr>`;
+  tfoot.innerHTML = footHtml;
+}
+
+function updateDuesStats() {
+  let totalPaid = 0;
+  let paidInFull = 0;
+  const activeMonths = currentYear === "2020" ? 7 : 12;
+  const yearlyTarget = activeMonths * DUES_RATE;
+  const totalExpected = appData.members.length * yearlyTarget;
+
+  appData.members.forEach(m => {
+    let sum = 0;
+    const records = (appData.dues[currentYear] && appData.dues[currentYear][m]) || {};
+    MONTHS.forEach(mo => sum += (records[mo] || 0));
+    totalPaid += sum;
+    if (sum >= yearlyTarget) paidInFull++;
+  });
+
+  document.getElementById('statCollected').innerText = `$${totalPaid.toLocaleString()}`;
+  document.getElementById('statOutstanding').innerText = `$${Math.max(0, totalExpected - totalPaid).toLocaleString()}`;
+  document.getElementById('statMembersCount').innerText = appData.members.length;
+  document.getElementById('statPaidUp').innerText = `${paidInFull} / ${appData.members.length}`;
+}
+
+/* ================== SOU SOU LOGIC ================== */
+function renderSouSouTable() {
+  const tbody = document.getElementById('souSouTableBody');
+  tbody.innerHTML = "";
+  const list = appData.sousou[currentYear] || [];
+
+  list.forEach((item, index) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:700;">${item.month}</td>
+      <td style="text-align:left; padding-left:14px;">
+        <select onchange="updateSouSouRow(${index}, 'recipient', this.value)" style="width:170px;">
+          ${appData.members.map(m => `<option value="${m}" ${m === item.recipient ? 'selected':''}>${m}</option>`).join('')}
+          <option value="Unassigned" ${item.recipient === 'Unassigned' ? 'selected':''}>Unassigned</option>
+        </select>
+      </td>
+      <td>
+        <input type="number" value="${item.amount}" style="width:90px;" onchange="updateSouSouRow(${index}, 'amount', parseFloat(this.value)||0)">
+      </td>
+      <td>
+        <select onchange="updateSouSouRow(${index}, 'status', this.value)" style="font-weight:600; color:${item.status === 'Paid Out' ? '#166534':'#991b1b'};">
+          <option value="Pending" ${item.status === 'Pending' ? 'selected':''}>Pending</option>
+          <option value="Paid Out" ${item.status === 'Paid Out' ? 'selected':''}>Paid Out</option>
+        </select>
+      </td>
+      <td>
+        <input type="date" value="${item.datePaid || ''}" onchange="updateSouSouRow(${index}, 'datePaid', this.value)">
+      </td>
+      <td>
+        <button class="btn" style="padding:4px 8px; font-size:12px;" onclick="toggleSouSouPaid(${index})">Toggle Payout</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateSouSouRow(index, field, value) {
+  if (appData.sousou[currentYear] && appData.sousou[currentYear][index]) {
+    appData.sousou[currentYear][index][field] = value;
+    saveData();
+  }
+}
+
+function toggleSouSouPaid(index) {
+  const item = appData.sousou[currentYear][index];
+  item.status = item.status === "Paid Out" ? "Pending" : "Paid Out";
+  if (item.status === "Paid Out" && !item.datePaid) {
+    item.datePaid = new Date().toISOString().split('T')[0];
+  }
+  saveData();
+}
+
+function autoPopulateSouSouSchedule() {
+  appData.sousou[currentYear] = MONTHS.map((mo, idx) => ({
+    month: mo,
+    recipient: appData.members[idx % appData.members.length] || "Unassigned",
+    amount: appData.members.length * DUES_RATE,
+    status: "Pending",
+    datePaid: ""
+  }));
+  saveData();
+}
+
+function updateSouSouStats() {
+  const list = appData.sousou[currentYear] || [];
+  let totalPool = 0;
+  let distributed = 0;
+
+  list.forEach(item => {
+    totalPool += Number(item.amount) || 0;
+    if (item.status === "Paid Out") distributed += Number(item.amount) || 0;
+  });
+
+  document.getElementById('ssPoolTotal').innerText = `$${totalPool.toLocaleString()}`;
+  document.getElementById('ssDistributed').innerText = `$${distributed.toLocaleString()}`;
+  document.getElementById('ssPending').innerText = `$${(totalPool - distributed).toLocaleString()}`;
+}
+
+/* ================== EXPORT & BACKUP ================== */
+function exportToCSV() {
+  let csv = `Brown Investment Club - ${currentYear} Dues Ledger\n`;
+  csv += "Name," + MONTHS.join(",") + ",Total Paid,Balance Due\n";
+  const activeCount = currentYear === "2020" ? 7 : 12;
+  const yearlyTarget = activeCount * DUES_RATE;
+
+  appData.members.forEach(name => {
+    let total = 0;
+    const row = [name];
+    MONTHS.forEach((mo, idx) => {
+      if (currentYear === "2020" && idx < 5) {
+        row.push("N/A");
+      } else {
+        const amt = (appData.dues[currentYear] && appData.dues[currentYear][name] && appData.dues[currentYear][name][mo]) || 0;
+        total += amt;
+        row.push(amt);
+      }
+    });
+    row.push(total, Math.max(0, yearlyTarget - total));
+    csv += row.join(",") + "\n";
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute("download", `Brown_Investment_Club_${currentYear}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function exportBackupJSON() {
+  const jsonStr = JSON.stringify(appData, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute("download", `Brown_Investment_Club_Backup.json`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function importBackupJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (imported.members && imported.dues) {
+        appData = imported;
+        saveData();
+        alert("Club data successfully restored!");
+      } else {
+        alert("Invalid file format.");
+      }
+    } catch(err) {
+      alert("Error parsing JSON backup file.");
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Initialize
+handleYearChange();
+</script>
+</body>
+</html>
