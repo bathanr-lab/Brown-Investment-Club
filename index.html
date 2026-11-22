@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Brown Investment Club Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --primary: #15803d;
@@ -36,8 +37,28 @@
       flex-wrap: wrap;
       gap: 12px;
     }
-    h1 { margin: 0; font-size: 24px; color: #1e293b; display: flex; align-items: center; gap: 8px; }
+    h1 { margin: 0; font-size: 24px; color: #1e293b; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .subtitle { margin: 4px 0 0; color: var(--text-muted); font-size: 13.5px; }
+
+    .sync-pill {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+    .sync-pill.synced {
+      background: #dcfce7;
+      color: #166534;
+      border-color: #bbf7d0;
+    }
+    .sync-pill.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border-color: #fecaca;
+    }
 
     .tabs-bar {
       display: flex;
@@ -241,7 +262,10 @@
   <!-- HEADER -->
   <div class="header">
     <div>
-      <h1>🌾 Brown Investment Club</h1>
+      <h1>
+        🌾 Brown Investment Club
+        <span id="syncStatus" class="sync-pill">Connecting to Cloud...</span>
+      </h1>
       <p class="subtitle">Multi-Year Member Dues (June 2020 – November 2026) &amp; Sou Sou Tracker</p>
     </div>
     <div style="display:flex; gap: 8px; flex-wrap:wrap;">
@@ -434,6 +458,13 @@
 </div>
 
 <script>
+const SUPABASE_URL = 'https://guqdudmfcacqyjfeoyxh.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_uyg0ytiNiVTkJCcZ3c918Q_vEK22ru1';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const DB_TABLE = 'brown_investment_club';
+const DB_ROW_ID = 'main_ledger';
+const STORAGE_KEY = 'brown_investment_club_v3';
+
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DUES_RATE = 25;
 
@@ -459,16 +490,12 @@ function generateDefaultData() {
       db.dues[yr][name] = {};
       MONTHS.forEach((mo, idx) => {
         if (yr === "2020") {
-          // Jan-May N/A, Jun-Dec paid ($25)
           db.dues[yr][name][mo] = idx < 5 ? null : 25;
         } else if (["2021", "2022", "2023", "2024", "2025"].includes(yr)) {
-          // All months fully paid
           db.dues[yr][name][mo] = 25;
         } else if (yr === "2026") {
-          // Jan through Nov fully paid (idx 0 to 10), Dec open (0)
           db.dues[yr][name][mo] = idx <= 10 ? 25 : 0;
         } else {
-          // 2027+
           db.dues[yr][name][mo] = 0;
         }
       });
@@ -489,26 +516,107 @@ function generateDefaultData() {
 let appData = loadData();
 let currentYear = "2026";
 let activeTab = "dues";
+let isApplyingRemote = false;
+
+function setSyncBadge(state, text) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.className = 'sync-pill ' + state;
+  el.textContent = text;
+}
 
 function loadData() {
-  const saved = localStorage.getItem('brown_investment_club_v3');
+  const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
     try { return JSON.parse(saved); } catch(e) {}
   }
   return generateDefaultData();
 }
 
-function saveData() {
-  localStorage.setItem('brown_investment_club_v3', JSON.stringify(appData));
+function renderActiveView() {
+  document.getElementById('tableHeading').innerText = `${currentYear} Dues Ledger ($25/mo)`;
+  document.getElementById('statCollectedLabel').innerText = `Total Collected (${currentYear})`;
   if (activeTab === "dues") {
     renderDuesTable();
     updateDuesStats();
   } else if (activeTab === "lifetime") {
     renderLifetimeTable();
   } else {
+    document.getElementById('souSouYearLabel').innerText = currentYear;
     renderSouSouTable();
     updateSouSouStats();
   }
+}
+
+async function pushToCloud() {
+  if (isApplyingRemote) return;
+  setSyncBadge('', 'Saving to Cloud...');
+  const { error } = await supabaseClient
+    .from(DB_TABLE)
+    .upsert({
+      id: DB_ROW_ID,
+      payload: appData,
+      updated_at: new Date().toISOString()
+    });
+
+  if (error) {
+    console.error('Supabase save error:', error);
+    setSyncBadge('error', 'Cloud Sync Error (Saved Locally)');
+  } else {
+    setSyncBadge('synced', '☁️ Synced Live');
+  }
+}
+
+async function initSync() {
+  // 1. Render cached local state immediately
+  renderActiveView();
+
+  // 2. Pull latest state from Supabase
+  setSyncBadge('', 'Connecting to Cloud...');
+  const { data, error } = await supabaseClient
+    .from(DB_TABLE)
+    .select('payload')
+    .eq('id', DB_ROW_ID)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Supabase fetch error:', error);
+    setSyncBadge('error', 'Offline / Connection Error');
+  } else if (data && data.payload && data.payload.members && data.payload.dues) {
+    appData = data.payload;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    renderActiveView();
+    setSyncBadge('synced', '☁️ Synced Live');
+  } else {
+    // Cloud is empty -> upload this device's existing ledger
+    await pushToCloud();
+  }
+
+  // 3. Subscribe to live updates from other devices
+  supabaseClient
+    .channel('investment_club_realtime')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: DB_TABLE, filter: `id=eq.${DB_ROW_ID}` },
+      (payload) => {
+        if (payload.new && payload.new.payload && payload.new.payload.members) {
+          isApplyingRemote = true;
+          appData = payload.new.payload;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+          renderActiveView();
+          setSyncBadge('synced', '☁️ Updated from Another Device');
+          setTimeout(() => setSyncBadge('synced', '☁️ Synced Live'), 3000);
+          isApplyingRemote = false;
+        }
+      }
+    )
+    .subscribe();
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+  renderActiveView();
+  pushToCloud();
 }
 
 function resetToNov2026Baseline() {
@@ -529,16 +637,7 @@ function switchTab(tab) {
   document.getElementById('souSouSection').className = tab === 'sousou' ? '' : 'hidden';
   document.getElementById('yearSelectorContainer').style.display = tab === 'lifetime' ? 'none' : 'flex';
 
-  if (tab === 'dues') {
-    renderDuesTable();
-    updateDuesStats();
-  } else if (tab === 'lifetime') {
-    renderLifetimeTable();
-  } else {
-    document.getElementById('souSouYearLabel').innerText = currentYear;
-    renderSouSouTable();
-    updateSouSouStats();
-  }
+  renderActiveView();
 }
 
 function handleYearChange() {
@@ -558,8 +657,10 @@ function handleYearChange() {
       appData.dues[currentYear][m] = {};
       MONTHS.forEach(mo => appData.dues[currentYear][m][mo] = 0);
     });
+    saveData();
+  } else {
+    renderActiveView();
   }
-  saveData();
 }
 
 /* ================== DUES LOGIC ================== */
@@ -887,7 +988,7 @@ function importBackupJSON(event) {
       if (imported.members && imported.dues) {
         appData = imported;
         saveData();
-        alert("Club data successfully restored!");
+        alert("Club data successfully restored and synced to the cloud!");
       }
     } catch(err) {
       alert("Error parsing backup file.");
@@ -897,7 +998,7 @@ function importBackupJSON(event) {
 }
 
 // Initial Run
-handleYearChange();
+initSync();
 </script>
 </body>
 </html>
