@@ -28,7 +28,6 @@
     }
     .container { max-width: 1250px; margin: 0 auto; }
     
-    /* Top Header */
     .header {
       display: flex;
       justify-content: space-between;
@@ -40,7 +39,6 @@
     h1 { margin: 0; font-size: 24px; color: #1e293b; display: flex; align-items: center; gap: 8px; }
     .subtitle { margin: 4px 0 0; color: var(--text-muted); font-size: 13.5px; }
 
-    /* Navigation Tabs */
     .tabs-bar {
       display: flex;
       justify-content: space-between;
@@ -85,7 +83,6 @@
       cursor: pointer;
     }
 
-    /* Summary Stats */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -102,7 +99,6 @@
     .stat-num { font-size: 26px; font-weight: 800; color: var(--primary); }
     .stat-label { font-size: 12.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
 
-    /* Cards */
     .card {
       background: var(--card-bg);
       border-radius: 12px;
@@ -124,7 +120,6 @@
       gap: 8px;
     }
 
-    /* Buttons & Inputs */
     .btn {
       padding: 8px 14px;
       background: var(--primary);
@@ -157,7 +152,6 @@
       box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
     }
 
-    /* Tables */
     .table-container {
       max-height: 580px;
       overflow-x: auto;
@@ -223,7 +217,6 @@
     .total-col { font-weight: 700; background: #f8fafc; }
     .due-col { font-weight: 700; color: #dc2626; background: #f8fafc; }
 
-    /* Forms */
     .flex-form {
       display: flex;
       gap: 8px;
@@ -249,13 +242,14 @@
   <div class="header">
     <div>
       <h1>🌾 Brown Investment Club</h1>
-      <p class="subtitle">Member Dues, Multi-Year History (June 2020 – Present) & Sou Sou Tracker</p>
+      <p class="subtitle">Multi-Year Member Dues (June 2020 – November 2026) &amp; Sou Sou Tracker</p>
     </div>
     <div style="display:flex; gap: 8px; flex-wrap:wrap;">
       <button class="btn btn-secondary" onclick="exportToCSV()">⬇️ Export CSV</button>
       <button class="btn btn-secondary" onclick="exportBackupJSON()">💾 Backup (JSON)</button>
       <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📂 Restore</button>
       <input type="file" id="importFile" class="hidden" accept=".json" onchange="importBackupJSON(event)">
+      <button class="btn btn-secondary" style="background:#b91c1c;" onclick="resetToNov2026Baseline()">🔄 Reset to Baseline</button>
     </div>
   </div>
 
@@ -263,18 +257,19 @@
   <div class="tabs-bar">
     <div class="tabs">
       <button class="tab-btn active" id="tabDues" onclick="switchTab('dues')">🏦 Investment Fund Dues</button>
+      <button class="tab-btn" id="tabLifetime" onclick="switchTab('lifetime')">📊 Lifetime Summary (2020-2026)</button>
       <button class="tab-btn" id="tabSouSou" onclick="switchTab('sousou')">🔄 Sou Sou Pool</button>
     </div>
-    <div class="year-selector-wrap">
+    <div class="year-selector-wrap" id="yearSelectorContainer">
       <label for="yearSelect">Active Year:</label>
       <select id="yearSelect" class="year-select" onchange="handleYearChange()">
-        <option value="2020">2020 (From June)</option>
+        <option value="2020">2020 (June-Dec)</option>
         <option value="2021">2021</option>
         <option value="2022">2022</option>
         <option value="2023">2023</option>
         <option value="2024">2024</option>
         <option value="2025">2025</option>
-        <option value="2026" selected>2026 (Current)</option>
+        <option value="2026" selected>2026 (Paid to Nov)</option>
         <option value="2027">2027</option>
       </select>
     </div>
@@ -283,7 +278,7 @@
   <!-- DUES TAB CONTENT -->
   <div id="duesSection">
     <div class="notice" id="yearNotice">
-      ℹ️ <strong>Roster Notice:</strong> Filtered to the 13 members with verified dues through July 2026. Double-click any name to rename inline, or click monthly amounts to toggle payments.
+      ℹ️ <strong>Roster Notice:</strong> All 13 qualifying members are marked paid through November 2026 ($25/mo). Double-click any name to rename, or click monthly amounts to toggle payments.
     </div>
 
     <!-- STATS -->
@@ -294,15 +289,15 @@
       </div>
       <div class="stat-card">
         <div class="stat-num" id="statOutstanding" style="color: #dc2626;">$0</div>
-        <div class="stat-label">Remaining Balance Due</div>
+        <div class="stat-label">Remaining Balance Due (2026)</div>
       </div>
       <div class="stat-card">
         <div class="stat-num" id="statMembersCount" style="color: #0284c7;">13</div>
         <div class="stat-label">Active Qualifying Members</div>
       </div>
       <div class="stat-card">
-        <div class="stat-num" id="statPaidUp" style="color: #16a34a;">0</div>
-        <div class="stat-label">Paid In Full for Year</div>
+        <div class="stat-num" id="statPaidUp" style="color: #16a34a;">13</div>
+        <div class="stat-label">Paid Up To Nov 2026</div>
       </div>
     </div>
 
@@ -349,6 +344,49 @@
     </div>
   </div>
 
+  <!-- LIFETIME SUMMARY TAB -->
+  <div id="lifetimeSection" class="hidden">
+    <div class="notice">
+      📊 <strong>Lifetime Multi-Year View:</strong> Total dues accumulated per member from <strong>June 2020 through November 2026</strong> ($1,575 target per member).
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-num" id="lifetimeGrandTotal">$20,475</div>
+        <div class="stat-label">Total Lifetime Collected</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color: #16a34a;">63 Months</div>
+        <div class="stat-label">Active Period (Jun 2020 - Nov 2026)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color: #0284c7;">$1,575</div>
+        <div class="stat-label">Expected Per Member (Through Nov 2026)</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Multi-Year Member Contribution Breakdown</div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:left; padding-left:14px;">Member Name</th>
+              <th>2020 (Jun-Dec)</th>
+              <th>2021</th>
+              <th>2022</th>
+              <th>2023</th>
+              <th>2024</th>
+              <th>2025</th>
+              <th>2026 (Jan-Nov)</th>
+              <th class="total-col">Lifetime Total</th>
+            </tr>
+          </thead>
+          <tbody id="lifetimeTableBody"></tbody>
+          <tfoot id="lifetimeTableFoot" style="font-weight:700; background:#f8fafc;"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- SOU SOU TAB CONTENT -->
   <div id="souSouSection" class="hidden">
     <div class="notice">
@@ -372,7 +410,7 @@
 
     <div class="card">
       <div class="card-title">
-        <span>Sou Sou Monthly Schedule & Recipient Log</span>
+        <span>Sou Sou Monthly Schedule &amp; Recipient Log</span>
         <button class="btn btn-secondary" onclick="autoPopulateSouSouSchedule()">Auto-Assign Roster</button>
       </div>
       <div class="table-container">
@@ -399,14 +437,14 @@
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DUES_RATE = 25;
 
-// Verified roster: Only members paid up through at least July 2026
+// The 13 qualifying members
 const DEFAULT_QUALIFYING_MEMBERS = [
   "Diana", "Sheila", "Eric", "Carlisa", "Kenny", 
   "Tyveka", "Bathan", "Leila", "Sophia", "Mechelle", 
   "Lisa", "Erica", "Tiara"
 ];
 
-// Baseline data structure
+// Baseline data with full payment history from June 2020 through November 2026
 function generateDefaultData() {
   const years = ["2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027"];
   const db = {
@@ -419,25 +457,23 @@ function generateDefaultData() {
     db.dues[yr] = {};
     db.members.forEach(name => {
       db.dues[yr][name] = {};
-      MONTHS.forEach(mo => {
-        // Pre-fill 2026 based on spreadsheet
-        if (yr === "2026") {
-          let paid = 0;
-          if (["Diana","Tyveka","Bathan","Leila","Sophia","Lisa"].includes(name) && MONTHS.indexOf(mo) <= 10) paid = 25;
-          else if (["Sheila"].includes(name) && MONTHS.indexOf(mo) <= 9) paid = 25;
-          else if (["Eric","Erica"].includes(name) && MONTHS.indexOf(mo) <= 8) paid = 25;
-          else if (["Carlisa","Kenny","Mechelle"].includes(name) && MONTHS.indexOf(mo) <= 7) paid = 25;
-          else if (["Tiara"].includes(name) && MONTHS.indexOf(mo) <= 6) paid = 25;
-          db.dues[yr][name][mo] = paid;
-        } else if (yr === "2020" && MONTHS.indexOf(mo) < 5) {
-          db.dues[yr][name][mo] = null; // Prior to June 2020
+      MONTHS.forEach((mo, idx) => {
+        if (yr === "2020") {
+          // Jan-May N/A, Jun-Dec paid ($25)
+          db.dues[yr][name][mo] = idx < 5 ? null : 25;
+        } else if (["2021", "2022", "2023", "2024", "2025"].includes(yr)) {
+          // All months fully paid
+          db.dues[yr][name][mo] = 25;
+        } else if (yr === "2026") {
+          // Jan through Nov fully paid (idx 0 to 10), Dec open (0)
+          db.dues[yr][name][mo] = idx <= 10 ? 25 : 0;
         } else {
+          // 2027+
           db.dues[yr][name][mo] = 0;
         }
       });
     });
 
-    // Default Sou Sou setup
     db.sousou[yr] = MONTHS.map((mo, idx) => ({
       month: mo,
       recipient: db.members[idx % db.members.length] || "Unassigned",
@@ -455,7 +491,7 @@ let currentYear = "2026";
 let activeTab = "dues";
 
 function loadData() {
-  const saved = localStorage.getItem('brown_investment_club_v2');
+  const saved = localStorage.getItem('brown_investment_club_v3');
   if (saved) {
     try { return JSON.parse(saved); } catch(e) {}
   }
@@ -463,26 +499,41 @@ function loadData() {
 }
 
 function saveData() {
-  localStorage.setItem('brown_investment_club_v2', JSON.stringify(appData));
+  localStorage.setItem('brown_investment_club_v3', JSON.stringify(appData));
   if (activeTab === "dues") {
     renderDuesTable();
     updateDuesStats();
+  } else if (activeTab === "lifetime") {
+    renderLifetimeTable();
   } else {
     renderSouSouTable();
     updateSouSouStats();
   }
 }
 
+function resetToNov2026Baseline() {
+  if (confirm("Reset roster and mark all 13 members fully paid from June 2020 through November 2026?")) {
+    appData = generateDefaultData();
+    saveData();
+  }
+}
+
 function switchTab(tab) {
   activeTab = tab;
   document.getElementById('tabDues').className = tab === 'dues' ? 'tab-btn active' : 'tab-btn';
+  document.getElementById('tabLifetime').className = tab === 'lifetime' ? 'tab-btn active' : 'tab-btn';
   document.getElementById('tabSouSou').className = tab === 'sousou' ? 'tab-btn active' : 'tab-btn';
+
   document.getElementById('duesSection').className = tab === 'dues' ? '' : 'hidden';
+  document.getElementById('lifetimeSection').className = tab === 'lifetime' ? '' : 'hidden';
   document.getElementById('souSouSection').className = tab === 'sousou' ? '' : 'hidden';
+  document.getElementById('yearSelectorContainer').style.display = tab === 'lifetime' ? 'none' : 'flex';
 
   if (tab === 'dues') {
     renderDuesTable();
     updateDuesStats();
+  } else if (tab === 'lifetime') {
+    renderLifetimeTable();
   } else {
     document.getElementById('souSouYearLabel').innerText = currentYear;
     renderSouSouTable();
@@ -496,12 +547,11 @@ function handleYearChange() {
   document.getElementById('statCollectedLabel').innerText = `Total Collected (${currentYear})`;
   
   if (currentYear === "2020") {
-    document.getElementById('yearNotice').innerHTML = `ℹ️ <strong>2020 Notice:</strong> Tracking began in <strong>June 2020</strong>. January through May are marked not applicable.`;
+    document.getElementById('yearNotice').innerHTML = `ℹ️ <strong>2020 Notice:</strong> Tracking began in <strong>June 2020</strong>. January through May are marked N/A. June–Dec are fully paid.`;
   } else {
-    document.getElementById('yearNotice').innerHTML = `ℹ️ <strong>Roster Notice:</strong> Filtered to the 13 members with verified dues through July 2026. Double-click any name to rename inline, or click monthly amounts to toggle payments.`;
+    document.getElementById('yearNotice').innerHTML = `ℹ️ <strong>Roster Notice:</strong> Filtered to the 13 qualifying members paid through November 2026 ($25/mo). Double-click any name to rename, or click monthly amounts to toggle payments.`;
   }
 
-  // Ensure year exists in data
   if (!appData.dues[currentYear]) {
     appData.dues[currentYear] = {};
     appData.members.forEach(m => {
@@ -509,22 +559,12 @@ function handleYearChange() {
       MONTHS.forEach(mo => appData.dues[currentYear][m][mo] = 0);
     });
   }
-  if (!appData.sousou[currentYear]) {
-    appData.sousou[currentYear] = MONTHS.map((mo, idx) => ({
-      month: mo,
-      recipient: appData.members[idx % appData.members.length] || "Unassigned",
-      amount: appData.members.length * DUES_RATE,
-      status: "Pending",
-      datePaid: ""
-    }));
-  }
-
   saveData();
 }
 
 /* ================== DUES LOGIC ================== */
 function togglePayment(name, month) {
-  if (currentYear === "2020" && MONTHS.indexOf(month) < 5) return; // N/A months
+  if (currentYear === "2020" && MONTHS.indexOf(month) < 5) return;
   if (!appData.dues[currentYear][name]) appData.dues[currentYear][name] = {};
   const current = appData.dues[currentYear][name][month] || 0;
   appData.dues[currentYear][name][month] = current > 0 ? 0 : DUES_RATE;
@@ -541,8 +581,11 @@ function addNewMember() {
   appData.members.push(name);
   Object.keys(appData.dues).forEach(yr => {
     appData.dues[yr][name] = {};
-    MONTHS.forEach(mo => {
-      appData.dues[yr][name][mo] = (yr === "2020" && MONTHS.indexOf(mo) < 5) ? null : 0;
+    MONTHS.forEach((mo, idx) => {
+      if (yr === "2020") appData.dues[yr][name][mo] = idx < 5 ? null : 25;
+      else if (["2021", "2022", "2023", "2024", "2025"].includes(yr)) appData.dues[yr][name][mo] = 25;
+      else if (yr === "2026") appData.dues[yr][name][mo] = idx <= 10 ? 25 : 0;
+      else appData.dues[yr][name][mo] = 0;
     });
   });
   document.getElementById('newMemberName').value = "";
@@ -574,7 +617,7 @@ function renameMember(oldName) {
 }
 
 function deleteMember(name) {
-  if (confirm(`Are you sure you want to delete ${name} from all years?`)) {
+  if (confirm(`Delete ${name} from all years?`)) {
     appData.members = appData.members.filter(m => m !== name);
     Object.keys(appData.dues).forEach(yr => delete appData.dues[yr][name]);
     saveData();
@@ -592,7 +635,7 @@ function renderDuesTable() {
   let grandTotalPaid = 0;
   let grandTotalDue = 0;
 
-  const activeMonthsCount = currentYear === "2020" ? 7 : 12; // June-Dec = 7
+  const activeMonthsCount = currentYear === "2020" ? 7 : (currentYear === "2026" ? 11 : 12);
   const yearlyExpected = activeMonthsCount * DUES_RATE;
 
   const filteredMembers = appData.members.filter(m => m.toLowerCase().includes(filter));
@@ -640,7 +683,6 @@ function renderDuesTable() {
     tbody.appendChild(tr);
   });
 
-  // Footer Totals
   let footHtml = `<tr><td style="text-align:left; padding-left:12px;">Monthly Totals</td>`;
   MONTHS.forEach((mo, idx) => {
     if (currentYear === "2020" && idx < 5) {
@@ -659,7 +701,7 @@ function renderDuesTable() {
 function updateDuesStats() {
   let totalPaid = 0;
   let paidInFull = 0;
-  const activeMonths = currentYear === "2020" ? 7 : 12;
+  const activeMonths = currentYear === "2020" ? 7 : (currentYear === "2026" ? 11 : 12);
   const yearlyTarget = activeMonths * DUES_RATE;
   const totalExpected = appData.members.length * yearlyTarget;
 
@@ -675,6 +717,43 @@ function updateDuesStats() {
   document.getElementById('statOutstanding').innerText = `$${Math.max(0, totalExpected - totalPaid).toLocaleString()}`;
   document.getElementById('statMembersCount').innerText = appData.members.length;
   document.getElementById('statPaidUp').innerText = `${paidInFull} / ${appData.members.length}`;
+}
+
+/* ================== LIFETIME MULTI-YEAR VIEW ================== */
+function renderLifetimeTable() {
+  const tbody = document.getElementById('lifetimeTableBody');
+  const tfoot = document.getElementById('lifetimeTableFoot');
+  tbody.innerHTML = "";
+
+  const years = ["2020", "2021", "2022", "2023", "2024", "2025", "2026"];
+  const yearTotals = { "2020":0, "2021":0, "2022":0, "2023":0, "2024":0, "2025":0, "2026":0 };
+  let grandTotal = 0;
+
+  appData.members.forEach(name => {
+    let memberLifetime = 0;
+    let row = `<tr><td style="text-align:left; font-weight:600; padding-left:14px;">${name}</td>`;
+    
+    years.forEach(yr => {
+      let yrSum = 0;
+      if (appData.dues[yr] && appData.dues[yr][name]) {
+        MONTHS.forEach(mo => yrSum += (appData.dues[yr][name][mo] || 0));
+      }
+      yearTotals[yr] += yrSum;
+      memberLifetime += yrSum;
+      row += `<td>$${yrSum}</td>`;
+    });
+
+    grandTotal += memberLifetime;
+    row += `<td class="total-col" style="color:var(--primary); font-weight:800;">$${memberLifetime}</td></tr>`;
+    tbody.innerHTML += row;
+  });
+
+  let foot = `<tr><td style="text-align:left; font-weight:800; padding-left:14px;">All Members Total</td>`;
+  years.forEach(yr => foot += `<td>$${yearTotals[yr].toLocaleString()}</td>`);
+  foot += `<td class="total-col" style="color:var(--primary); font-weight:800; font-size:15px;">$${grandTotal.toLocaleString()}</td></tr>`;
+  tfoot.innerHTML = foot;
+
+  document.getElementById('lifetimeGrandTotal').innerText = `$${grandTotal.toLocaleString()}`;
 }
 
 /* ================== SOU SOU LOGIC ================== */
@@ -755,11 +834,11 @@ function updateSouSouStats() {
   document.getElementById('ssPending').innerText = `$${(totalPool - distributed).toLocaleString()}`;
 }
 
-/* ================== EXPORT & BACKUP ================== */
+/* ================== EXPORTS ================== */
 function exportToCSV() {
   let csv = `Brown Investment Club - ${currentYear} Dues Ledger\n`;
   csv += "Name," + MONTHS.join(",") + ",Total Paid,Balance Due\n";
-  const activeCount = currentYear === "2020" ? 7 : 12;
+  const activeCount = currentYear === "2020" ? 7 : (currentYear === "2026" ? 11 : 12);
   const yearlyTarget = activeCount * DUES_RATE;
 
   appData.members.forEach(name => {
@@ -809,17 +888,15 @@ function importBackupJSON(event) {
         appData = imported;
         saveData();
         alert("Club data successfully restored!");
-      } else {
-        alert("Invalid file format.");
       }
     } catch(err) {
-      alert("Error parsing JSON backup file.");
+      alert("Error parsing backup file.");
     }
   };
   reader.readAsText(file);
 }
 
-// Initialize
+// Initial Run
 handleYearChange();
 </script>
 </body>
