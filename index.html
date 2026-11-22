@@ -460,7 +460,13 @@
 <script>
 const SUPABASE_URL = 'https://guqdudmfcacqyjfeoyxh.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_uyg0ytiNiVTkJCcZ3c918Q_vEK22ru1';
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  global: {
+    headers: {
+      Authorization: ''
+    }
+  }
+});
 const DB_TABLE = 'brown_investment_club';
 const DB_ROW_ID = 'main_ledger';
 const STORAGE_KEY = 'brown_investment_club_v3';
